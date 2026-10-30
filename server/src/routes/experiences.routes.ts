@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { createExperience, listApprovedExperiences, listExperiences, updateExperienceStatus } from '../controllers/experiences.controller.js';
+import { requireAdmin } from '../middleware/auth.js';
+import { experienceUpload } from '../middleware/upload.js';
+const router = Router();
+router.get('/', listApprovedExperiences);
+router.post('/', experienceUpload.array('media', 5), createExperience);
+router.get('/admin', requireAdmin, listExperiences);
+router.patch('/:id/status', requireAdmin, updateExperienceStatus);
+export default router;

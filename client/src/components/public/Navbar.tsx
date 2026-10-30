@@ -1,0 +1,203 @@
+import { useState, useEffect } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Menu, X, Globe } from 'lucide-react';
+import { cn, mediaUrl } from '@/lib/utils';
+import { useSettings } from '@/hooks/useSettings';
+
+const navLinks = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/about', label: 'About' },
+  { to: '/ratings', label: 'Ratings' },
+  { to: '/gallery', label: 'Gallery' },
+  { to: '/experiences', label: 'Experiences' },
+  { to: '/packages', label: 'Packages' },
+  { to: '/contact', label: 'Contact' },
+];
+
+export function Navbar() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
+  const { data: settings } = useSettings();
+
+  // Detect scroll
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 30);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Lock body scroll saat mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  const logoUrl = settings?.['brand.logo']
+    ? mediaUrl(settings['brand.logo'])
+    : '';
+
+  // Transparan hanya di homepage + belum scroll
+  const isHome = location.pathname === '/';
+  const transparent = false;
+
+  return (
+    <header
+      className={cn(
+        'fixed top-0 inset-x-0 z-50 transition-all duration-300',
+        transparent
+          ? 'bg-transparent'
+          : 'bg-white/95 backdrop-blur-md shadow-sm'
+      )}
+    >
+      <div className="container-page flex items-center justify-between h-16 md:h-20">
+        {/* ============ LOGO ============ */}
+        <Link
+          to="/"
+          className="flex items-center gap-2 transition-transform duration-200 hover:scale-[1.03]"
+        >
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Visit Aikbukak"
+              className="h-9 md:h-11 w-auto object-contain"
+            />
+          ) : (
+            <>
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center font-heading font-bold text-lg transition-colors duration-300',
+                  transparent ? 'bg-white text-primary' : 'bg-primary text-white'
+                )}
+              >
+                A
+              </div>
+              <span
+                className={cn(
+                  'font-heading font-bold text-lg md:text-xl transition-colors duration-300',
+                  transparent ? 'text-white' : 'text-primary'
+                )}
+              >
+                Visit<span className="text-accent">Aikbukak</span>
+              </span>
+            </>
+          )}
+        </Link>
+
+        {/* ============ DESKTOP NAV ============ */}
+        <nav className="hidden lg:flex items-center gap-1">
+          {navLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) =>
+                cn(
+                  'relative px-3 py-2 text-sm font-medium rounded-button transition-all duration-200',
+                  'after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-0.5 after:bg-accent after:transition-all after:duration-200',
+                  isActive
+                    ? transparent
+                      ? 'text-white after:w-6'
+                      : 'text-primary after:w-6'
+                    : cn(
+                        'after:w-0 hover:after:w-6',
+                        transparent
+                          ? 'text-white/90 hover:text-white'
+                          : 'text-neutral-dark hover:text-primary'
+                      )
+                )
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* ============ RIGHT ACTIONS ============ */}
+        <div className="flex items-center gap-2">
+          <button
+            className={cn(
+              'hidden md:flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-button transition-colors',
+              transparent
+                ? 'text-white/90 hover:text-white hover:bg-white/10'
+                : 'text-neutral-mid hover:text-primary hover:bg-neutral-light'
+            )}
+          >
+            <Globe size={16} />
+            <span>EN</span>
+          </button>
+
+          <Link
+            to="/packages"
+            className={cn(
+              'hidden sm:inline-flex items-center justify-center text-sm font-semibold px-4 py-2 rounded-button transition-all duration-200 hover:scale-[1.03]',
+              transparent
+                ? 'bg-accent text-neutral-dark hover:bg-yellow-400'
+                : 'bg-primary text-white hover:bg-secondary'
+            )}
+          >
+            Book Now
+          </Link>
+
+          <button
+            onClick={() => setOpen(!open)}
+            className={cn(
+              'lg:hidden p-2 rounded-button transition-colors',
+              transparent
+                ? 'hover:bg-white/10 text-white'
+                : 'hover:bg-neutral-light text-neutral-dark'
+            )}
+            aria-label="Toggle menu"
+          >
+            {open ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {/* ============ MOBILE MENU ============ */}
+      <div
+        className={cn(
+          'lg:hidden overflow-hidden bg-white border-t border-neutral-light transition-all duration-300',
+          open ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+        )}
+      >
+        <nav className="container-page py-4 flex flex-col gap-1">
+          {navLinks.map((link, i) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  'px-4 py-3 rounded-button text-base font-medium transition-all duration-200 animate-slide-in',
+                  isActive
+                    ? 'text-primary bg-primary/5'
+                    : 'text-neutral-dark hover:bg-neutral-light'
+                )
+              }
+              style={{ animationDelay: `${i * 30}ms` }}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+          <Link
+            to="/packages"
+            onClick={() => setOpen(false)}
+            className="btn-primary mt-3 text-center"
+          >
+            Book Now
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}

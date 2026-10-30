@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER
+  EDITOR
+  BOOKING
+}
+
+enum PackageStatus {
+  DRAFT
+  ACTIVE
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum GalleryCategory {
+  NATURE
+  ACTIVITY
+  FACILITY
+  VIDEO
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  CARD
+  PAYPAL
+  BANK
+  QRIS
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum RatingSource {
+  GOOGLE
+  TRIPADVISOR
+}
+
+enum ExperienceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContactStatus {
+  NEW
+  READ
+  REPLIED
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(EDITOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model TourType {
+  id       String    @id @default(cuid())
+  nameEn   String
+  nameId   String
+  slug     String    @unique
+  packages Package[]
+}
+
+model Location {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  packages    Package[]
+}
+
+model Package {
+  id            String        @id @default(cuid())
+  typeId        String
+  locationId    String
+  nameEn        String
+  nameId        String
+  slug          String        @unique
+  descriptionEn String
+  descriptionId String
+  durationHours Int
+  price         Float
+  maxGuests     Int
+  status        PackageStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+
+  type        TourType         @relation(fields: [typeId], references: [id])
+  location    Location         @relation(fields: [locationId], references: [id])
+  itineraries Itinerary[]
+  includes    PackageInclude[]
+  excludes    PackageExclude[]
+  media       PackageMedia[]
+  bookings    Booking[]
+}
+
+model Itinerary {
+  id          String  @id @default(cuid())
+  packageId   String
+  time        String
+  description String
+  sortOrder   Int     @default(0)
+  package     Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model PackageInclude {
+  id        String  @id @default(cuid())
+  packageId String
+  item      String
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model PackageExclude {
+  id        String  @id @default(cuid())
+  packageId String
+  item      String
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model PackageMedia {
+  id        String    @id @default(cuid())
+  packageId String
+  url       String
+  type      MediaType @default(IMAGE)
+  package   Package   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model Gallery {
+  id        String          @id @default(cuid())
+  url       String
+  type      MediaType       @default(IMAGE)
+  category  GalleryCategory
+  caption   String?
+  createdAt DateTime        @default(now())
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  bookingCode  String        @unique
+  packageId    String
+  guestName    String
+  guestEmail   String
+  guestPhone   String
+  guestCountry String
+  bookingDate  DateTime
+  timeSlot     String
+  adults       Int
+  children     Int           @default(0)
+  totalAmount  Float
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now())
+
+  package Package @relation(fields: [packageId], references: [id])
+  payment Payment?
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  bookingId  String        @unique
+  method     PaymentMethod
+  gatewayRef String?
+  amount     Float
+  status     PaymentStatus @default(PENDING)
+  paidAt     DateTime?
+  booking    Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model GuestExperience {
+  id          String           @id @default(cuid())
+  guestName   String
+  guestEmail  String
+  country     String
+  verifiedVia RatingSource
+  rating      Int
+  story       String
+  status      ExperienceStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  media       ExperienceMedia[]
+}
+
+model ExperienceMedia {
+  id           String          @id @default(cuid())
+  experienceId String
+  url          String
+  type         MediaType       @default(IMAGE)
+  experience   GuestExperience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+}
+
+model RatingSnapshot {
+  id           String       @id @default(cuid())
+  source       RatingSource
+  score        Float
+  totalReviews Int
+  fetchedAt    DateTime     @default(now())
+}
+
+model ContactMessage {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    ContactStatus @default(NEW)
+  createdAt DateTime      @default(now())
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
